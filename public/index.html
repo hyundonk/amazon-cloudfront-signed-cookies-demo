@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CloudFront Signed Cookie Authentication</title>
+    <style>
+        body { font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; }
+        .container { background: #f5f5f5; padding: 20px; border-radius: 8px; margin: 20px 0; }
+        .form-group { margin: 15px 0; }
+        label { display: block; margin-bottom: 5px; font-weight: bold; }
+        input { width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px; }
+        button { background: #007bff; color: white; padding: 10px 20px; border: none; border-radius: 5px; cursor: pointer; margin: 5px; }
+        button:hover { background: #0056b3; }
+        .success { color: #28a745; padding: 10px; background: #d4edda; border-radius: 5px; }
+        .error { color: #dc3545; padding: 10px; background: #f8d7da; border-radius: 5px; }
+        .info { background: #e8f4fd; padding: 15px; border-radius: 5px; margin: 10px 0; }
+    </style>
+</head>
+<body>
+    <h1>CloudFront Signed Cookie Authentication</h1>
+    
+    <div class="container">
+        <h2>Login</h2>
+        <form id="loginForm">
+            <div class="form-group">
+                <label for="username">Username:</label>
+                <input type="text" id="username" name="username" required>
+                <small>Any username works for demo</small>
+            </div>
+            
+            <div class="form-group">
+                <label for="password">Password:</label>
+                <input type="password" id="password" name="password" required>
+                <small>Use: demo123</small>
+            </div>
+            
+            <button type="submit">Login & Set Cookies</button>
+        </form>
+        
+        <div id="loginMessage"></div>
+    </div>
+
+    <div class="container">
+        <h2>Test Restricted Access</h2>
+        <p>After login, test access to restricted CloudFront content:</p>
+        <button onclick="testAccess()">Test Restricted Content</button>
+        <div id="accessResult"></div>
+    </div>
+
+    <div class="container">
+        <h2>Logout</h2>
+        <button onclick="logout()">Logout & Clear Cookies</button>
+        <div id="logoutMessage"></div>
+    </div>
+
+    <div class="info">
+        <h3>How it works:</h3>
+        <ol>
+            <li>User submits login credentials to Node.js server</li>
+            <li>Server validates credentials and generates signed cookies</li>
+            <li>Server sends Set-Cookie headers with CloudFront signed cookies</li>
+            <li>Browser automatically includes cookies in subsequent requests</li>
+            <li>CloudFront validates cookies for restricted content access</li>
+        </ol>
+    </div>
+
+    <script>
+        document.getElementById('loginForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const username = document.getElementById('username').value;
+            const password = document.getElementById('password').value;
+            
+            try {
+                const response = await fetch('/login', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ username, password })
+                });
+                
+                const result = await response.json();
+                const messageDiv = document.getElementById('loginMessage');
+                
+                if (result.success) {
+                    messageDiv.innerHTML = `<div class="success">${result.message}</div>`;
+                } else {
+                    messageDiv.innerHTML = `<div class="error">${result.message}</div>`;
+                }
+            } catch (error) {
+                document.getElementById('loginMessage').innerHTML = 
+                    `<div class="error">Login failed: ${error.message}</div>`;
+            }
+        });
+
+        async function testAccess() {
+            document.getElementById('accessResult').innerHTML = 
+                '<div>Testing direct access to CloudFront...</div>';
+
+            try {
+                const response = await fetch('https://assets.sample.hyundonk.dev/restricted/test.txt', {
+                    credentials: 'include'
+                });
+                
+                if (response.ok) {
+                    const content = await response.text();
+                    document.getElementById('accessResult').innerHTML = 
+                        `<div class="success">✓ Direct access granted! Content: <pre>${content}</pre></div>`;
+                } else {
+                    document.getElementById('accessResult').innerHTML = 
+                        `<div class="error">✗ Direct access denied: ${response.status} ${response.statusText}</div>`;
+                }
+            } catch (error) {
+                document.getElementById('accessResult').innerHTML = 
+                    `<div class="error">✗ Request failed: ${error.message}</div>`;
+            }
+        }
+
+        async function logout() {
+            try {
+                const response = await fetch('/logout', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' }
+                });
+                
+                const result = await response.json();
+                
+                // Also clear cookies client-side as backup
+                document.cookie = 'CloudFront-Policy=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/; secure; samesite=none';
+                document.cookie = 'CloudFront-Signature=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/; secure; samesite=none';
+                document.cookie = 'CloudFront-Key-Pair-Id=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/; secure; samesite=none';
+                
+                document.getElementById('logoutMessage').innerHTML = 
+                    `<div class="success">${result.message}</div>`;
+                    
+                // Clear login message
+                document.getElementById('loginMessage').innerHTML = '';
+                document.getElementById('accessResult').innerHTML = '';
+            } catch (error) {
+                document.getElementById('logoutMessage').innerHTML = 
+                    `<div class="error">Logout failed: ${error.message}</div>`;
+            }
+        }
+    </script>
+</body>
+</html>
