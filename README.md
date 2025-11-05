@@ -73,7 +73,7 @@ npm start
 ### Login Cookies
 - **Resource**: `https://assets.sample.hyundonk.dev/restricted/*`
 - **Expiration**: November 11, 2025
-- **Key Pair ID**: K3Q9LE95NK34FS
+- **Key Pair ID**: KXXXXXXXXXXXXS
 - **Domain**: `.sample.hyundonk.dev` (works across subdomains)
 - **Security**: `httpOnly: true`, `secure: true`, `sameSite: 'none'`
 

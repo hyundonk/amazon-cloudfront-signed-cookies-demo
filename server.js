@@ -8,7 +8,7 @@ const app = express();
 const PORT = process.env.PORT || 3000;
 
 // Load private key from file (not hardcoded)
-const keyPairId = process.env.CLOUDFRONT_KEY_PAIR_ID || "K3Q9LE95NK34FS";
+const keyPairId = process.env.CLOUDFRONT_KEY_PAIR_ID;
 const privateKeyPath = process.env.PRIVATE_KEY_PATH || path.join(__dirname, 'private-key.pem');
 
 let privateKey;
